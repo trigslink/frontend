@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Earnings</title>
+  <link rel="stylesheet" href="css/style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    .wallet-pill {
+      position: absolute;
+      top: 1rem;
+      right: 1.5rem;
+      background: #21262d;
+      color: #c9d1d9;
+      font-family: monospace;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .earning-table-row img {
+      width: 20px;
+      height: 20px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="walletDisplay" class="wallet-pill"></div>
+
+  <div class="layout">
+
+    <!-- ☰ Sidebar toggle -->
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+
+
+    <!-- ==== SIDEBAR ==== -->
+    <aside class="sidebar">
+      <!-- Return Home -->
+      <div class="sidebar-section">
+        <h3 style="margin-bottom:.5rem">🏠 Main Portal</h3>
+        <a href="./index.html" class="admin-btn">Return to MCP Portal</a>
+      </div>
+
+      <!-- Admin Panel -->
+      <div class="sidebar-section">
+        <h3 style="margin-bottom:.5rem">🛠️ Admin Panel</h3>
+        <a href="./admin-dashboard.html" class="admin-btn">Go to Admin Dashboard</a>
+      </div>
+
+      <!-- CPU Chart -->
+      <div class="sidebar-section">
+        <h3 style="margin-bottom:.5rem">⏱️ CPU Usage</h3>
+        <div class="chart-card"><canvas id="cpuChart" height="80"></canvas></div>
+      </div>
+    </aside>
+
+    <!-- ==== MAIN ==== -->
+    <main class="main-content">
+      <section class="dashboard" style="width: 100%; max-width: 1100px; margin: auto;">
+        <h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 2rem;">💲 Income Analytics</h2>
+
+        <!-- Summary Metrics (Static Placeholder) -->
+        <div style="display: flex; gap: 1.5rem; margin-bottom: 2rem;">
+          <div style="flex: 1; background: #1d1f25; padding: 1.2rem; border-radius: 12px;">
+            <h4 style="color: #aaa; margin-bottom: 0.5rem;">Total Subscription</h4>
+            <p style="font-size: 1.8rem; font-weight: 600;">-</p>
+          </div>
+          <div style="flex: 1; background: #1d1f25; padding: 1.2rem; border-radius: 12px;">
+            <h4 style="color: #aaa; margin-bottom: 0.5rem;">Total Income this month</h4>
+            <p style="font-size: 1.8rem; font-weight: 600;">-</p>
+          </div>
+          <div style="flex: 1; background: #1d1f25; padding: 1.2rem; border-radius: 12px;">
+            <h4 style="margin-bottom: 0.5rem;">Total Earning</h4>
+            <p style="font-size: 1.8rem; font-weight: 600;">-</p>
+          </div>
+        </div>
+
+        <!-- Earnings Table -->
+        <div style="background: #1d1f25; border-radius: 12px; padding: 1.5rem;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="color: #aaa; font-size: 0.9rem;">
+                <th align="left" style="padding: 0.75rem;">Service Name</th>
+                <th align="left" style="padding: 0.75rem;">Bill per month</th>
+                <th align="left" style="padding: 0.75rem;">Total Pulls</th>
+                <th align="left" style="padding: 0.75rem;">Total Earnings</th>
+              </tr>
+            </thead>
+            <tbody id="earningTableBody">
+              <!-- 🧠 Dynamically filled by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- JS Logic -->
+  <script type="module">
+    import { connectWallet, restoreWallet, shortenAddress } from "./js/wallet.js";
+
+    // Chart
+    import("https://cdn.jsdelivr.net/npm/chart.js").then(() => {
+      const ctx = document.getElementById("cpuChart").getContext("2d");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [...Array(10).keys()],
+          datasets: [{
+            data: [35, 42, 38, 30, 25, 20, 22, 28, 34, 39],
+            borderColor: "#4fc3f7",
+            backgroundColor: "transparent",
+            pointRadius: 0,
+            borderWidth: 2,
+            tension: 0.4
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: { x: { display: false }, y: { display: false } }
+        }
+      });
+    });
+
+    // Sidebar toggle
+    document.getElementById("sidebar-toggle").addEventListener("click", () =>
+      document.querySelector(".layout").classList.toggle("sidebar-collapsed")
+    );
+
+    // Render earnings table from logo_url entries
+    function renderEarningsTable(mcps) {
+      const tableBody = document.getElementById("earningTableBody");
+      tableBody.innerHTML = "";
+
+      mcps.forEach(m => {
+        const row = document.createElement("tr");
+        row.className = "earning-table-row";
+
+        row.innerHTML = `
+          <td style="padding: 0.75rem; display: flex; align-items: center; gap: 0.6rem;">
+            <img src="${m.logo_url}" />
+            ${m.service_name}
+          </td>
+          <td style="padding: 0.75rem;">$${(Number(m.price) / 1e18).toFixed(2)}</td>
+          <td style="padding: 0.75rem;">-</td>
+          <td style="padding: 0.75rem;">-</td>
+        `;
+
+        tableBody.appendChild(row);
+      });
+    }
+
+    document.addEventListener("walletConnected", async (e) => {
+      const wallet = e.detail;
+      document.getElementById("walletDisplay").textContent = shortenAddress(wallet);
+
+      try {
+        const res = await fetch(`http://localhost:8000/available_mcps?wallet=${wallet}`);
+        const data = await res.json();
+        const filtered = data.filter(m => m.logo_url);
+        renderEarningsTable(filtered);
+      } catch (err) {
+        console.error("Fetch failed:", err);
+      }
+    });
+
+    document.addEventListener("walletDisconnected", () => {
+      document.getElementById("walletDisplay").textContent = "";
+      document.getElementById("earningTableBody").innerHTML = "";
+    });
+
+    restoreWallet();
+    if (!localStorage.getItem("connectedWallet")) connectWallet();
+  </script>
+</body>
+</html>

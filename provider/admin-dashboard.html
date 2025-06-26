@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+
+  <style>
+    /* ---------- tiny dashboard-specific tweaks ---------- */
+    .mcp-list    { display:flex; flex-direction:column; gap:1rem; }
+    .mcp-card    { display:flex; gap:1rem; align-items:center;
+                   background:#161b22;border:1px solid #21262d;
+                   border-radius:12px; padding:1rem; }
+    .mcp-card img{ width:48px;height:48px;border-radius:8px;object-fit:cover;}
+    .mcp-meta h3 { font-size:1.05rem;color:#e6edf3;margin-bottom:.25rem; }
+    .mcp-meta p  { font-size:.9rem;color:#8b949e;margin-bottom:.4rem; }
+    .price-badge { background:#8957e5;color:#fff;padding:.2rem .6rem;
+                   border-radius:6px;font-size:.75rem; }
+    /* wallet pill (top-right) */
+    .wallet-pill { position:absolute;top:1rem;right:1.5rem;
+                   background:#21262d;color:#c9d1d9;font-family:monospace;
+                   padding:.4rem .8rem;border-radius:8px;font-size:.9rem;}
+  </style>
+</head>
+<body>
+  <!-- 🔐 wallet address gets injected here -->
+  <div id="walletDisplay" class="wallet-pill"></div>
+
+  <div class="layout">
+    <!-- ☰ Sidebar toggle -->
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+
+
+    <!-- ---- SIDEBAR ---- -->
+    <aside class="sidebar">
+      <!-- quick back-to-main button -->
+      <div class="sidebar-section">
+        <h3 style="margin-bottom:.5rem">🏠 Main Portal</h3>
+        <a href="../index.html" class="admin-btn">Return to MCP Portal</a>
+      </div>
+
+      <!-- Earnings Panel Button -->
+<div class="sidebar-section">
+  <h3 style="margin-bottom:.5rem">💰 Earnings</h3>
+  <a href="./earnings.html" class="admin-btn">View Earnings</a>
+</div>
+
+
+      <!-- CPU chart (static) -->
+      <div class="sidebar-section">
+        <h3 style="margin-bottom:.5rem">⏱️ CPU Usage</h3>
+        <div class="chart-card"><canvas id="cpuChart" height="80"></canvas></div>
+      </div>
+    </aside>
+
+    <!-- ---- MAIN ---- -->
+    <main class="main-content">
+      <section class="dashboard" style="width: 100%; max-width: 1000px; margin: auto;">
+        <h2>📊 Admin Dashboard</h2>
+        <div id="mcpList" class="mcp-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- -----  JS  ----- -->
+  <script type="module">
+    import { connectWallet, restoreWallet, shortenAddress } from "./js/wallet.js";
+
+    /* 1. mini CPU sparkline (static) */
+    import("https://cdn.jsdelivr.net/npm/chart.js").then(() => {
+      const ctx = document.getElementById("cpuChart").getContext("2d");
+      new Chart(ctx, {
+        type:"line",
+        data:{labels:[...Array(10).keys()],
+          datasets:[{data:[35,42,38,30,25,20,22,28,34,39],
+            borderColor:"#4fc3f7",backgroundColor:"transparent",
+            pointRadius:0,borderWidth:2,tension:.4}]},
+        options:{plugins:{legend:{display:false}},
+                 scales:{x:{display:false},y:{display:false}}}
+      });
+    });
+
+    /* 2. sidebar collapse */
+    document.getElementById("sidebar-toggle")
+      .addEventListener("click",()=>document.querySelector(".layout")
+      .classList.toggle("sidebar-collapsed"));
+
+    /* 3. Fetch + render MCPs ------------------------------------------------ */
+    async function fetchMCPs(walletAddr){
+      if(!walletAddr) return;
+      try{
+        const res = await fetch(
+          `http://localhost:8000/available_mcps?wallet=${walletAddr}`
+        );
+        const data = await res.json();
+        const withLogos = data.filter(m=>m.logo_url);
+        renderMCPs(withLogos);
+      }catch(err){console.error("Failed to fetch MCPs:",err);}
+    }
+
+    function renderMCPs(list){
+      const wrap = document.getElementById("mcpList");
+      wrap.innerHTML = "";
+      list.forEach(m=>{
+        const card=document.createElement("div");
+        card.className="mcp-card";
+        card.innerHTML=`
+          <img src="${m.logo_url}" alt="${m.service_name} logo">
+          <div class="mcp-meta">
+            <h3>${m.service_name}</h3>
+            <p>${m.description}</p>
+            ${m.price
+              ? `<span class="price-badge">${(Number(m.price)/1e18).toFixed(0)} USD/mo</span>`
+              : ""}
+          </div>`;
+        wrap.appendChild(card);
+      });
+    }
+
+    /* 4. handle wallet events ---------------------------------------------- */
+    document.addEventListener("walletConnected", e=>{
+      const addr=e.detail;
+      document.getElementById("walletDisplay").textContent=shortenAddress(addr);
+      fetchMCPs(addr);
+    });
+    document.addEventListener("walletDisconnected", ()=>{
+      document.getElementById("walletDisplay").textContent="";
+      document.getElementById("mcpList").innerHTML="";
+    });
+
+    /* 5. boot --------------------------------------------------------------- */
+    restoreWallet();       // hydrate if already connected
+    if(!localStorage.getItem("connectedWallet")){
+      connectWallet();     // ask user straight away (feel free to move this)
+    }
+  </script>
+</body>
+</html>

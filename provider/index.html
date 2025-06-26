@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trigslink MCP Portal</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="layout">
+    <!-- ☰ Sidebar toggle -->
+    <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+
+    <!-- ==== SIDEBAR ==== -->
+    <aside class="sidebar">
+      <img src="assets/logo.jpeg" alt="Trigslink logo" id="logo" />
+      <div class="sidebar-section">
+        <h3>🌐 Get Your URL</h3>
+        <button id="show-widget" class="tunnel-btn">Get your URL Tunnel Here</button>
+      </div>
+      <div class="sidebar-section">
+        <h3>🛠️ Admin Panel</h3>
+        <a href="./admin-dashboard.html" class="admin-btn">Go to Admin Dashboard</a>
+      </div>
+
+      <!-- Earnings Panel Button -->
+<div class="sidebar-section">
+  <h3 style="margin-bottom:.5rem">💰 Earnings</h3>
+  <a href="./earnings.html" class="admin-btn">View Earnings</a>
+</div>
+  
+      <div class="sidebar-section">
+        <h3>⏱️ CPU Usage</h3>
+        <div class="chart-card">
+          <canvas id="cpuChart" width="200" height="100"></canvas>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==== MAIN ==== -->
+    <main class="main-content">
+      <!-- STEP 1 -->
+      <section id="connect-wallet">
+        <h2>Step 1. Connect to Your Account</h2>
+        <p>Link your wallet</p>
+        <div class="wallet-box">
+
+<div class="tooltip" data-tooltip="If connection does not work, please disconnect your wallet manually">
+  <button id="connect-button">Connect Wallet</button>
+</div>
+
+          <p id="wallet-address" hidden></p>
+          <button id="disconnect-button" style="margin-top:0.5rem">Disconnect</button>
+        </div>
+      </section>
+
+      <!-- STEP 2 -->
+      <section id="register-mcp">
+        <h2>Step 2. Register Your MCP</h2>
+        <form id="mcp-form">
+          <label for="service-name">MCP Service Name</label>
+          <input type="text" id="service-name" required placeholder="Type your service name here..." />
+
+          <label for="subscription">Subscription</label>
+          <input type="number" id="subscription" required placeholder="How much subscribers will pay monthly in USD..." />
+
+          <label for="description">Description</label>
+          <textarea id="description" required placeholder="Describe your service..."></textarea>
+
+          <label for="url">Url</label>
+          <textarea id="url" required placeholder="Input your cloudflare url..."></textarea>
+
+          <label for="logo-upload">Logo</label>
+          <input type="file" id="logo-upload" accept=".png,.svg" />
+
+          <button type="submit" id="submit-button">Submit</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==== FROSTED GLASS WIDGET ==== -->
+  <div id="url-widget" class="hidden">
+    <div class="widget-box">
+      <button id="close-widget" style="position:absolute;top:.5rem;right:.75rem;background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer">✖</button>
+
+      <p>1. Install the CLI</p>
+      <div class="cmd-row"><code>pip install trigslink-tunnel</code><span class="copy-btn" data-copy="pip install trigslink-tunnel">📋</span></div>
+
+      <p>2. Start the tunnel (replace <code>{port}</code>)</p>
+      <div class="cmd-row"><code>trigslink-tunnel {port}</code><span class="copy-btn" data-copy="trigslink-tunnel {port}">📋</span></div>
+
+      <p>3. Access your URL</p>
+      <div class="cmd-row"><code>https://&lt;generated-name&gt;.trycloudflare.com</code><span class="copy-btn" data-copy="https://<generated-name>.trycloudflare.com">📋</span></div>
+    </div>
+  </div>
+
+  <!-- ==== Ethers + Logic ==== -->
+  <script type="module">
+    import { ethers } from 'https://cdn.jsdelivr.net/npm/ethers@6.7.0/+esm';
+    import { connectWallet, restoreWallet, disconnectWallet } from './js/wallet.js';
+    import { registerMcp } from './js/contract.js';
+
+    function setupUI() {
+      document.getElementById('sidebar-toggle')
+        ?.addEventListener('click', () => document.querySelector('.layout')
+        ?.classList.toggle('sidebar-collapsed'));
+
+      const widget = document.getElementById('url-widget');
+      document.getElementById('show-widget')
+        ?.addEventListener('click', () => widget.classList.remove('hidden'));
+      document.getElementById('close-widget')
+        ?.addEventListener('click', () => widget.classList.add('hidden'));
+
+      document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const txt = btn.dataset.copy;
+          navigator.clipboard.writeText(txt).then(() => {
+            btn.textContent = '✅';
+            setTimeout(() => btn.textContent = '📋', 1000);
+          });
+        });
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      restoreWallet(ethers);
+      document.getElementById('connect-button')
+        ?.addEventListener('click', () => connectWallet(ethers));
+      document.getElementById('disconnect-button')
+        ?.addEventListener('click', () => disconnectWallet());
+      document.getElementById('mcp-form')
+        ?.addEventListener('submit', (e) => registerMcp(e, ethers));
+      setupUI();
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const ctx = document.getElementById('cpuChart').getContext('2d');
+    const cpuChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [...Array(10).keys()],
+        datasets: [{
+          label: 'CPU',
+          data: [35, 42, 38, 30, 25, 20, 22, 28, 34, 39],
+          borderColor: '#4fc3f7',
+          backgroundColor: 'transparent',
+          pointRadius: 2,
+          borderWidth: 2,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: { display: false }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
