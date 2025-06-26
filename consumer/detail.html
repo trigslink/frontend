@@ -1,0 +1,134 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MCP Detail</title>
+  <style>
+    body {
+      background: #0f172a;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 40px;
+    }
+
+    .detail-box {
+      max-width: 800px;
+      background: #1e293b;
+      border-radius: 12px;
+      margin: auto;
+      padding: 30px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .header img {
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
+    }
+
+    .header-info h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .wallet {
+      color: #60a5fa;
+      font-size: 14px;
+      margin-top: 6px;
+    }
+
+    .description {
+      margin-top: 20px;
+      font-size: 15px;
+      color: #d1d5db;
+    }
+
+    .tags {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .tag {
+      background: #334155;
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    .price-box {
+      margin-top: 30px;
+      padding: 20px;
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      background: #0f172a;
+    }
+
+    .price-box h3 {
+      font-size: 28px;
+      margin: 0;
+    }
+
+    .price-box p {
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .price-box button {
+      margin-top: 10px;
+      background: #3b82f6;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="detail-box">
+    <div class="header">
+      <img src="https://via.placeholder.com/80" alt="logo" id="mcp-logo">
+      <div class="header-info">
+        <h2 id="mcp-title">mcp / NAME</h2>
+        <div class="wallet" id="mcp-wallet">By 0x...</div>
+      </div>
+    </div>
+    <div class="description" id="mcp-description">
+      MCP description goes here...
+    </div>
+    <div class="tags">
+      <div class="tag">AI Agent</div>
+      <div class="tag">Blockchain</div>
+      <div class="tag">Crypto</div>
+    </div>
+    <div class="price-box">
+      <h3 id="mcp-price">$XX</h3>
+      <p>Your subscription lasts 30 days and won't auto-renew. Please renew manually.</p>
+      <button>Subscribe</button>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const mcp_id = params.get("mcp_id");
+
+    fetch("http://localhost:8000/available_mcps")
+      .then(res => res.json())
+      .then(data => {
+        const mcp = data.find(item => item.mcp_id === mcp_id);
+        if (!mcp) return;
+        document.getElementById("mcp-logo").src = mcp.logo_url;
+        document.getElementById("mcp-title").textContent = `mcp / ${mcp.service_name}`;
+        document.getElementById("mcp-wallet").textContent = `By ${mcp.wallet}`;
+        document.getElementById("mcp-description").textContent = mcp.description;
+        document.getElementById("mcp-price").textContent = `$${(mcp.price / 1e18).toFixed(2)} / month`;
+      });
+  </script>
+</body>
+</html>

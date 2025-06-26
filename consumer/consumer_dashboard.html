@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Subscribed MCPs - Trigslink</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0f172a;
+      color: white;
+      display: flex;
+    }
+    .sidebar {
+      width: 240px;
+      background-color: #1e293b;
+      height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo img { height: 30px; }
+    .section {
+      background-color: #334155;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .main {
+      flex: 1;
+      background-color: #111827;
+      padding: 30px;
+    }
+    header {
+      background: linear-gradient(90deg, #1e3a8a, #2563eb);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 { font-size: 24px; margin: 0; }
+    .wallet { background: #1f2937; padding: 8px 16px; border-radius: 999px; font-size: 14px; }
+    .stats {
+      display: flex;
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .stat-box {
+      background: #1f2937;
+      padding: 20px;
+      border-radius: 10px;
+      flex: 1;
+      text-align: center;
+    }
+    .stat-box h2 { margin: 0; font-size: 24px; color: #60a5fa; }
+    .stat-box p { margin-top: 4px; font-size: 14px; color: #9ca3af; }
+    table {
+      width: 100%;
+      margin-top: 30px;
+      background-color: #1f2937;
+      border-radius: 12px;
+      overflow: hidden;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 16px;
+      text-align: left;
+      border-bottom: 1px solid #334155;
+    }
+    th { background-color: #1e293b; font-weight: 600; }
+    tr:last-child td { border-bottom: none; }
+    .logo-cell img {
+      width: 24px;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
+    .avax-icon {
+      height: 20px;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    .sidebar-section {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.sidebar-section h3 {
+  font-size: 0.95rem;
+  color: #ccc;
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+}
+
+.sidebar-btn {
+  display: inline-block;
+  width: 100%;
+  background: #334155;
+  color: #eee;
+  padding: 0.8rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.sidebar-btn:hover {
+  background: #475569;
+  color: white;
+  transform: scale(1.03);
+}
+
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <img src="assets/trigslink_logo.jpeg" alt="Trigslink" style="width: 120px; margin: 0 auto 1.5rem;" />
+
+       <div class="sidebar-section">
+        <h3>🏠 Home</h3>
+        <a class="sidebar-btn" href="../consumer/index.html">Return to dashboard</a>
+      </div>
+
+  <div class="sidebar-section">
+    <h3>🤖 AI Agent</h3>
+    <a href="trigsmind.html" class="sidebar-btn">Launch Agent</a>
+  </div>
+</div>
+
+  <div class="main">
+    <header>
+      <h1>Your <span style="color:#3b82f6">Nodes</span>, Your <span style="color:#3b82f6">Control</span></h1>
+      <div class="wallet" id="wallet-display">...</div>
+    </header>
+
+    <section class="stats">
+      <div class="stat-box">
+        <h2 id="total-subscriptions">0</h2>
+        <p>Total Subscriptions</p>
+      </div>
+      <div class="stat-box">
+        <h2 id="total-monthly"><img src="assets/avax_logo.png" class="avax-icon" />0.00</h2>
+        <p>Paid This Month</p>
+      </div>
+      <div class="stat-box">
+        <h2 id="total-alltime"><img src="assets/avax_logo.png" class="avax-icon" />0.00</h2>
+        <p>Total Paid All Time</p>
+      </div>
+    </section>
+
+    <table id="subscribed-list">
+      <thead>
+        <tr>
+          <th>Service Name</th>
+          <th>Date of Purchase</th>
+          <th>Expiration</th>
+          <th>Amount Paid</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    function shortenAddress(addr) {
+      return addr.slice(0, 6) + "..." + addr.slice(-4);
+    }
+
+    async function loadSubscriptions() {
+      const WALLET = localStorage.getItem("connectedWallet");
+      if (!WALLET) {
+        alert("Connect wallet first!");
+        return;
+      }
+      document.getElementById("wallet-display").textContent = shortenAddress(WALLET);
+
+      try {
+        const [subsRes, mcpsRes] = await Promise.all([
+          fetch(`http://localhost:8000/my_subscriptions?wallet=${WALLET}`),
+          fetch("http://localhost:8000/available_mcps")
+        ]);
+
+        const subs = await subsRes.json();
+        const allMcps = await mcpsRes.json();
+
+        const mcpMap = Object.fromEntries(allMcps.map(m => [m.mcp_id.toLowerCase(), m]));
+
+        const tbody = document.querySelector("#subscribed-list tbody");
+        tbody.innerHTML = "";
+
+        let total = 0;
+
+        subs.forEach(sub => {
+          const mcp = mcpMap[sub.mcp_id.toLowerCase()];
+          const serviceName = mcp?.service_name || "Unknown";
+          const logo = mcp?.logo_url || "https://dummyimage.com/24x24/333/fff.png&text=?";
+
+          const avaxAmount = parseFloat(sub.avax_paid);
+
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td class="logo-cell"><img src="${logo}" /> ${serviceName}</td>
+            <td>${new Date(sub.timestamp * 1000).toLocaleDateString()}</td>
+            <td>${new Date((sub.timestamp + 30 * 24 * 3600) * 1000).toLocaleDateString()}</td>
+            <td><img src="assets/avax_logo.png" class="avax-icon" />${avaxAmount.toFixed(4)} AVAX</td>
+          `;
+          tbody.appendChild(row);
+          total += avaxAmount;
+        });
+
+        document.getElementById("total-subscriptions").textContent = subs.length;
+        document.getElementById("total-monthly").innerHTML = `<img src="assets/avax_logo.png" class="avax-icon" />${total.toFixed(2)}`;
+        document.getElementById("total-alltime").innerHTML = `<img src="assets/avax_logo.png" class="avax-icon" />${total.toFixed(2)}`;
+      } catch (e) {
+        console.error("Failed to load subscriptions:", e);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadSubscriptions);
+  </script>
+</body>
+</html>

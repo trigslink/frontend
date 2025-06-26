@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MCP Consumer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f12;
+      color: #fff;
+      overflow: hidden;
+    }
+
+.layout {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: 100vh;
+  width: 100vw;
+}
+
+
+
+
+    .sidebar {
+      background-color: #1e293b;
+      width: 20px;
+      min-width: 250px;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      box-sizing: border-box;
+    }
+
+    .sidebar img {
+      width: 120px;
+      margin-bottom: 2rem;
+    }
+
+    .sidebar-section {
+      width: 100%;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .sidebar-section h3 {
+      font-size: 0.95rem;
+      color: #ccc;
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .sidebar-btn {
+  display: block;
+  max-width: 220px;
+  margin: 0 auto;
+  background: #334155;
+  color: #eee;
+  padding: 0.7rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+
+    .sidebar-btn:hover {
+      background: #475569;
+      color: white;
+      transform: scale(1.02);
+    }
+
+    .main-content {
+      flex-grow: 1;
+      padding: 2.5rem 3rem;
+      overflow-y: auto;
+    }
+
+    .mcp-card {
+      background: #1a1b1f;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .mcp-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .mcp-info img {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+    }
+
+    .mcp-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .subscribe-btn {
+      background: #4f9eff;
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      flex-shrink: 0;
+      white-space: nowrap;
+      margin-left: auto;
+      margin-top: 0.5rem;
+    }
+
+    @media (min-width: 600px) {
+      .mcp-card {
+        flex-wrap: nowrap;
+      }
+
+      .subscribe-btn {
+        margin-top: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <img src="assets/logo.jpeg" alt="Trigslink" />
+      <div class="sidebar-section">
+        <h3>🏠 Home</h3>
+        <a class="sidebar-btn" href="../consumer/index.html">Return to dashboard</a>
+      </div>
+      <div class="sidebar-section">
+      <div class="sidebar-section">
+        <h3>🧠 TrigsMind</h3>
+        <a class="sidebar-btn" href="trigsmind.html">AI Interaction Layer</a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <h1>MCP Library</h1>
+      <div id="mcp-container">Loading MCPs...</div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script>
+    const CONSUMER_CONTRACT_ADDRESS = "0xE873A01ac5bD5506670457B8BBA3C7bBd977B7b0";
+    const CONSUMER_ABI = [
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_priceFeed",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_provider",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "consumer",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "subId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "providerNonce",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "avaxPaid",
+        "type": "uint256"
+      }
+    ],
+    "name": "Subscribed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "consumer",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "subId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "enum McpConsumer.SubStatus",
+        "name": "status",
+        "type": "uint8"
+      }
+    ],
+    "name": "SubscriptionResolved",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "GRACE_PERIOD",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "allConsumers",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "checkData",
+        "type": "bytes"
+      }
+    ],
+    "name": "checkUpkeep",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "upkeepNeeded",
+        "type": "bool"
+      },
+      {
+        "internalType": "bytes",
+        "name": "performData",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_consumer",
+        "type": "address"
+      }
+    ],
+    "name": "getConsumerMcps",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "providerNonce",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "providerAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amountPaid",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "startTimestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "enum McpConsumer.SubStatus",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "string",
+            "name": "url",
+            "type": "string"
+          }
+        ],
+        "internalType": "struct McpConsumer.Subscription[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getLatestAvaxUsdPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "isKnownConsumer",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "mcpProvider",
+    "outputs": [
+      {
+        "internalType": "contract IMcpProvider",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_providerNonce",
+        "type": "uint256"
+      }
+    ],
+    "name": "penalizeProvider",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "performData",
+        "type": "bytes"
+      }
+    ],
+    "name": "performUpkeep",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "priceFeed",
+    "outputs": [
+      {
+        "internalType": "contract AggregatorV3Interface",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_providerNonce",
+        "type": "uint256"
+      }
+    ],
+    "name": "subscribeToMcp",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "userSubscriptions",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "providerNonce",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "providerAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountPaid",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "startTimestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum McpConsumer.SubStatus",
+        "name": "status",
+        "type": "uint8"
+      },
+      {
+        "internalType": "string",
+        "name": "url",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable",
+        "name": "to",
+        "type": "address"
+      }
+    ],
+    "name": "withdrawAvax",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+];
+
+    let provider, signer, contract;
+
+    async function initWallet() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        contract = new ethers.Contract(CONSUMER_CONTRACT_ADDRESS, CONSUMER_ABI, signer);
+        console.log("Wallet connected");
+      } else {
+        alert("Please install MetaMask");
+      }
+    }
+
+    function formatUsdPrice(price) {
+      return (parseFloat(price) / 1e18).toFixed(2);
+    }
+
+    async function subscribe(providerNonce, usdPrice) {
+      try {
+        const priceInUsd = ethers.BigNumber.from(usdPrice.toString());
+        const avaxUsdPrice = await contract.getLatestAvaxUsdPrice();
+        const amountInAvax = priceInUsd
+          .mul(ethers.BigNumber.from("100000000"))
+          .div(ethers.BigNumber.from(avaxUsdPrice.toString()));
+
+        const tx = await contract.subscribeToMcp(providerNonce, {
+          value: amountInAvax,
+        });
+        await tx.wait();
+        alert("✅ Subscribed!");
+      } catch (err) {
+        console.error("❌ Subscription failed:", err);
+        alert("Subscription failed. See console for details.");
+      }
+    }
+
+    async function loadMcps() {
+      await initWallet();
+
+      const res = await fetch("http://localhost:8000/available_mcps");
+      const data = await res.json();
+
+      const logoEntries = data.filter(e => e.logo_url);
+      const pricedEntries = data.filter(e => e.provider_nonce !== undefined);
+      const merged = pricedEntries.map(pe => {
+        const match = logoEntries.find(le => le.mcp_id === pe.mcp_id);
+        return { ...pe, ...match };
+      });
+
+      const uniqueByNonce = Object.values(
+        Object.fromEntries(merged.map(mcp => [mcp.provider_nonce, mcp]))
+      );
+
+      const container = document.getElementById("mcp-container");
+      container.innerHTML = "";
+
+      uniqueByNonce.forEach(mcp => {
+        const card = document.createElement("div");
+        card.className = "mcp-card";
+
+        const providerNonce = mcp.provider_nonce;
+        const price = mcp.price ?? mcp.usdPriceForConsumerMonth;
+        const serviceName = mcp.service_name ?? mcp.serviceName ?? "Unnamed MCP";
+        const description = mcp.description ?? mcp.serviceDescription ?? "No description";
+
+        if (!providerNonce || !price) return;
+
+        card.innerHTML = `
+          <div class="mcp-info">
+            <img src="${mcp.logo_url}" alt="Logo" />
+            <div class="mcp-text">
+              <strong>${serviceName}</strong>
+              <small>${description}</small>
+              <small>$${formatUsdPrice(price)} / month</small>
+            </div>
+          </div>
+          <button class="subscribe-btn" data-nonce="${providerNonce}" data-price="${price}">Subscribe</button>
+        `;
+        container.appendChild(card);
+      });
+
+      document.querySelectorAll(".subscribe-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const nonce = btn.getAttribute("data-nonce");
+          const price = btn.getAttribute("data-price");
+          await subscribe(nonce, price);
+        });
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", loadMcps);
+  </script>
+</body>
+</html>

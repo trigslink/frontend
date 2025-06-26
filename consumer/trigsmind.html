@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TrigsMind</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      height: 100vh;
+      background-color: #111;
+      font-family: 'Segoe UI', sans-serif;
+      color: white;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: #0d1117;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .sidebar img {
+      height: 40px;
+      margin-bottom: 20px;
+    }
+
+    .sidebar button {
+      width: 100%;
+      padding: 12px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .label {
+      font-size: 15px;
+      color: #e2e8f0;
+      margin-bottom: 8px;
+    }
+
+    select, textarea {
+      width: 100%;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      padding: 12px;
+      background: #1f2937;
+      color: white;
+    }
+
+    select {
+      height: 44px;
+    }
+
+    textarea {
+      height: 130px;
+      resize: none;
+      font-family: monospace;
+      margin-bottom: 10px;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #18181b;
+    }
+
+    .header {
+      background: linear-gradient(to right, #742ef2, #1e40af);
+      padding: 32px;
+      text-align: center;
+      border-radius: 0 0 16px 16px;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 6px;
+    }
+
+    .header .subheader {
+      font-size: 15px;
+      color: #d1d5db;
+    }
+
+    .chat-area {
+      flex: 1;
+      margin: 20px 40px;
+      background: #000;
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow-y: auto;
+      transition: all 0.3s ease;
+    }
+
+    .message {
+      margin-bottom: 14px;
+      line-height: 1.6;
+      max-width: 75%;
+      word-wrap: break-word;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: #1e3a8a;
+      padding: 12px 18px;
+      border-radius: 16px 16px 0 16px;
+    }
+
+    .message.agent {
+      align-self: flex-start;
+      background: #334155;
+      padding: 12px 18px;
+      border-radius: 16px 16px 16px 0;
+    }
+
+    .chat-input {
+      display: flex;
+      padding: 20px 40px;
+      border-top: 1px solid #222;
+      background: #0f0f0f;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+      background: #1f1f1f;
+      color: white;
+    }
+
+    .chat-input button {
+      margin-left: 12px;
+      padding: 14px 26px;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+
+    <a href="../consumer/index.html" style="text-decoration: none;">
+      <button>🏠 Home</button>
+    </a>
+
+    <div>
+      <div class="label">🔗 Select Your MCP</div>
+      <select id="mcpSelect">
+        <option value="">-- Choose MCP --</option>
+      </select>
+    </div>
+
+    <div>
+      <div class="label">🔐 Add your Credentials</div>
+      <textarea id="envVars" placeholder='{
+  "OPENAI_API_KEY": "",
+  "MODEL": "gpt-4o",
+  "ACCUWEATHER_API_KEY": ""
+}'></textarea>
+      <button onclick="submitCreds()">Submit</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="header">
+      <h1>TrigsMind</h1>
+      <div class="subheader">Your Personalized AI Agent</div>
+    </div>
+
+    <div class="chat-area" id="chatBox"></div>
+
+    <div class="chat-input">
+      <input type="text" id="userInput" placeholder="Ask your agent..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    let mcpMap = {};
+    let userCreds = {};
+    let hasInteracted = false;
+
+    async function loadMCPs() {
+      const res = await fetch('/available_mcps');
+      const data = await res.json();
+      const select = document.getElementById('mcpSelect');
+      data.forEach(mcp => {
+        const opt = document.createElement('option');
+        opt.value = mcp.mcp_id;
+        opt.text = mcp.service_name;
+        mcpMap[mcp.mcp_id] = mcp.https_uri;
+        select.appendChild(opt);
+      });
+    }
+
+    function submitCreds() {
+      try {
+        userCreds = JSON.parse(document.getElementById("envVars").value);
+        alert("✅ Credentials submitted!");
+      } catch (e) {
+        alert("❌ Invalid JSON format");
+      }
+    }
+
+    function appendMessage(content, sender = "agent") {
+      const box = document.getElementById("chatBox");
+      const div = document.createElement("div");
+      div.className = `message ${sender}`;
+      div.textContent = content;
+      box.appendChild(div);
+
+      if (!hasInteracted) {
+        box.style.justifyContent = "flex-start";
+        hasInteracted = true;
+      }
+
+      div.scrollIntoView({ behavior: "smooth" });
+    }
+
+    async function sendMessage() {
+      const prompt = document.getElementById("userInput").value;
+      const mcpId = document.getElementById("mcpSelect").value;
+
+      if (!prompt || !mcpId || !userCreds.OPENAI_API_KEY) {
+        alert("⚠️ Please fill all required fields!");
+        return;
+      }
+
+      appendMessage(prompt, "user");
+      document.getElementById("userInput").value = "";
+
+      const response = await fetch('/agent_query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mcp_id: mcpId,
+          user_prompt: prompt,
+          openai_api_key: userCreds.OPENAI_API_KEY,
+          openai_model: userCreds.MODEL,
+          env_vars: userCreds
+        })
+      });
+
+      const data = await response.json();
+      appendMessage(data.response || "No response", "agent");
+    }
+
+    loadMCPs();
+  </script>
+</body>
+</html>
