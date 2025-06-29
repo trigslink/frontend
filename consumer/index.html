@@ -154,25 +154,7 @@
     <a href="consumer_dashboard.html" class="sidebar-btn">View Past Subscriptions</a>
   </div>
 
-  <!-- Optional badge replication here if wanted -->
 
-
-    <!-- Chainlink badge -->
-<div class="sidebar-brand" style="margin-top: auto; text-align: center;">
-  <small style="display: block; color: #ccc; font-size: 12px; margin-bottom: 0.3rem;">
-    Powered by<br />Chainlink
-  </small>
-  <img src="assets/chainlink-powered-dark.svg"
-       alt="Chainlink"
-       style="width: 70px; opacity: 0.85; display: block; margin: 0 auto;" />
-</div>
-
-<!-- Avalanche badge -->
-<div class="sidebar-brand" style="margin-top: 1.5rem; margin-bottom: 2rem; text-align: center;">
-  <img src="assets/PoweredbyAvalanche_BlackWhite 1.svg"
-       alt="Powered by Avalanche"
-       style="width: 110px;" />
-</div>
 
   </div>
 
@@ -210,24 +192,61 @@
         return;
       }
 
+       const FUJI_PARAMS = {
+    chainId: "0xa869", // 43113 in hex
+    chainName: "Avalanche Fuji Testnet",
+    nativeCurrency: {
+      name: "Avalanche",
+      symbol: "AVAX",
+      decimals: 18,
+    },
+    rpcUrls: ["https://api.avax-test.network/ext/bc/C/rpc"],
+    blockExplorerUrls: ["https://subnets.avax.network/fuji"]
+  };
+
+       try {
+    const currentChainId = await ethereum.request({ method: "eth_chainId" });
+
+    if (currentChainId !== FUJI_PARAMS.chainId) {
       try {
-        await window.ethereum.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
-        const [account] = await window.ethereum.request({ method: "eth_requestAccounts" });
-
-        localStorage.setItem("connectedWallet", account);
-        document.dispatchEvent(new CustomEvent("walletConnected", { detail: account }));
-
-        const lbl = document.getElementById("walletAddressDisplay");
-        if (lbl) lbl.textContent = `Connected: ${shortenAddress(account)}`;
-
-        const btn = document.querySelector(".wallet-section button");
-        if (btn) btn.textContent = "Disconnect";
-
-        loadSubscriptions(account);
-      } catch (err) {
-        console.error("❌ Wallet connection failed", err);
+        await ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: FUJI_PARAMS.chainId }],
+        });
+      } catch (switchError) {
+        // If Fuji isn't added yet, add it
+        if (switchError.code === 4902) {
+          await ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [FUJI_PARAMS],
+          });
+        } else {
+          console.error("❌ Failed to switch network:", switchError);
+          return;
+        }
       }
     }
+
+   const [account] = await ethereum.request({
+  method: "wallet_requestPermissions",
+  params: [{ eth_accounts: {} }],
+}).then(() => ethereum.request({ method: "eth_requestAccounts" }));
+
+
+    localStorage.setItem("connectedWallet", account);
+    document.dispatchEvent(new CustomEvent("walletConnected", { detail: account }));
+
+    const lbl = document.getElementById("walletAddressDisplay");
+    if (lbl) lbl.textContent = `Connected: ${shortenAddress(account)}`;
+
+    const btn = document.querySelector(".wallet-section button");
+    if (btn) btn.textContent = "Disconnect";
+
+    loadSubscriptions(account);
+  } catch (err) {
+    console.error("❌ Wallet connection failed", err);
+  }
+}
 
     function restoreWallet() {
       const saved = localStorage.getItem("connectedWallet");
