@@ -1,3 +1,15 @@
+const FUJI_PARAMS = {
+  chainId: "0xa869", // 43113
+  chainName: "Avalanche Fuji Testnet",
+  nativeCurrency: {
+    name: "Avalanche",
+    symbol: "AVAX",
+    decimals: 18,
+  },
+  rpcUrls: ["https://api.avax-test.network/ext/bc/C/rpc"],
+  blockExplorerUrls: ["https://subnets.avax.network/fuji"],
+};
+
 export function shortenAddress(addr) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
@@ -9,6 +21,27 @@ export async function connectWallet() {
   }
 
   try {
+    const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
+
+    if (currentChainId !== FUJI_PARAMS.chainId) {
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: FUJI_PARAMS.chainId }],
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [FUJI_PARAMS],
+          });
+        } else {
+          console.error("❌ Failed to switch network:", switchError);
+          return;
+        }
+      }
+    }
+
     await window.ethereum.request({
       method: "wallet_requestPermissions",
       params: [{ eth_accounts: {} }],
@@ -19,13 +52,9 @@ export async function connectWallet() {
     });
 
     localStorage.setItem("connectedWallet", account);
-    document.dispatchEvent(
-      new CustomEvent("walletConnected", { detail: account })
-    );
+    document.dispatchEvent(new CustomEvent("walletConnected", { detail: account }));
 
-    const lbl = document.getElementById("walletAddressDisplay");
-    if (lbl) lbl.textContent = `Connected: ${shortenAddress(account)}`;
-
+    updateUI(account);
     console.log("✅ Connected to", account);
     return account;
   } catch (err) {
@@ -36,9 +65,7 @@ export async function connectWallet() {
 export function restoreWallet() {
   const saved = localStorage.getItem("connectedWallet");
   if (saved) {
-    document.dispatchEvent(
-      new CustomEvent("walletConnected", { detail: saved })
-    );
+    document.dispatchEvent(new CustomEvent("walletConnected", { detail: saved }));
     updateUI(saved);
   }
 
@@ -46,9 +73,7 @@ export function restoreWallet() {
     window.ethereum.on("accountsChanged", ([addr]) => {
       if (addr) {
         localStorage.setItem("connectedWallet", addr);
-        document.dispatchEvent(
-          new CustomEvent("walletConnected", { detail: addr })
-        );
+        document.dispatchEvent(new CustomEvent("walletConnected", { detail: addr }));
         updateUI(addr);
       } else {
         localStorage.removeItem("connectedWallet");
