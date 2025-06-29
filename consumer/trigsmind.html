@@ -202,7 +202,7 @@
     let hasInteracted = false;
 
     async function loadMCPs() {
-      const res = await fetch('/available_mcps');
+      const res = await fetch('http://localhost:8000/available_mcps');
       const data = await res.json();
       const select = document.getElementById('mcpSelect');
       data.forEach(mcp => {
@@ -250,7 +250,7 @@
       appendMessage(prompt, "user");
       document.getElementById("userInput").value = "";
 
-      const response = await fetch('/agent_query', {
+      const response = await fetch('http://localhost:8000/agent_query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
