@@ -1,123 +1,122 @@
-body {
+* {
   margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
   font-family: 'Inter', sans-serif;
   color: white;
   height: 100vh;
-  overflow: hidden;
-  position: relative;
-  animation: fadeIn 0.6s ease-in;
-    background: linear-gradient(
-    135deg,
-    #000000 0%,                          /* Pure black top left */
-    rgba(20, 10, 30, 0.95) 20%,          /* Dark violet transition */
-    rgba(30, 40, 80, 0.8) 60%,           /* Soft night blue */
-    rgba(15, 20, 50, 0.9) 75%,
-    rgba(255, 100, 150, 0.1) 100%        /* That faint canvas hue */
-  );
-
-  background-attachment: fixed;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.logo-container {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 2;
-}
-
-.logo {
-  height: 55px;      /* ⬅️ Bump this up from 40px */
-  width: auto;
-}
-
-
-.split-screen {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-  position: relative;
-  z-index: 1;
-}
-
-.half {
-  flex: 1;
+  background-color: #000; /* Deep dark base */
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(255, 0, 128, 0.2) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(0, 128, 255, 0.2) 0%, transparent 60%);
+  background-repeat: no-repeat;
+  background-size: cover;
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
+}
+
+/* Optional subtle movement */
+body {
+  background-size: 150% 150%;
+  animation: moveBackground 10s ease infinite;
+}
+
+@keyframes moveBackground {
+  0% { background-position: 50% 50%; }
+  50% { background-position: 55% 55%; }
+  100% { background-position: 50% 50%; }
+}
+
+/* Glassmorphism Container */
+.glass-container {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 50px 60px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  max-width: 500px;
+  width: 90%;
+}
+
+/* Logo */
+.logo {
+  width: 90px;
+  margin-bottom: 18px;
+}
+
+/* Title */
+.title {
+  font-size: 2.7rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* Subtitle */
+.subtitle {
+  font-size: 1.2rem;
+  opacity: 0.65;
+  margin-bottom: 35px;
+}
+
+/* Buttons */
+.button-group {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+button {
+  background-color: black;
+  border: 1.5px solid white;
+  color: white;
+  padding: 12px 32px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  position: relative;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
 }
 
-.left:hover {
-  background: rgba(255, 180, 200, 0.06);  /* warm hover */
+button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  transform: scale(1.05);
+  border-color: white;
 }
 
-.right:hover {
-  background: rgba(100, 200, 255, 0.06);  /* cool hover */
-}
-
-.half:hover {
-  transform: scale(1.02);
-  box-shadow: inset 0 0 30px rgba(255,255,255,0.03);
-  color: #b2faff;
-}
-
-h1 {
-  font-size: 3rem;
-  pointer-events: none;
-}
-
-.centered-label-top {
-  position: absolute;
-  top: 36%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.8rem;
-  opacity: 0.6;
-  font-weight: 400;
-  z-index: 2;
-  pointer-events: none;
-}
-
+/* Footer */
 .footer {
   position: absolute;
-  bottom: 20px;
+  bottom: 15px;
   left: 50%;
   transform: translateX(-50%);
-  opacity: 0.25;
   font-size: 0.9rem;
-  z-index: 2;
+  opacity: 0.15;
 }
 
-body::before {
-  content: '';
-  position: fixed;
-  top: 50%;
-  left: 65%;
-  width: 700px;
-  height: 700px;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(
-    ellipse,
-    rgba(255, 100, 150, 0.07),
-    transparent 70%
-  );
-  filter: blur(60px);
-  pointer-events: none;
-  z-index: 0;
-}
-
-@media (max-width: 768px) {
-  .split-screen {
+/* Responsive */
+@media (max-width: 600px) {
+  .button-group {
     flex-direction: column;
+    gap: 15px;
   }
-  .half {
-    height: 50%;
+
+  .glass-container {
+    padding: 40px 30px;
+  }
+
+  .title {
+    font-size: 2.2rem;
+  }
+
+  .logo {
+    width: 70px;
   }
 }
